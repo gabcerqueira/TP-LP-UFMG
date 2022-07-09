@@ -1,0 +1,32 @@
+1. Symbol not found.
+2. Plc Checker: Type mismatch in function call.
+3. Plc Checker: Types in comparison are different.
+4. Plc Checker: Types in comparison are different.
+5. Plc Checker: Wrong return type in function.
+6. Plc Checker: 'if' branch types differ.
+7. Plc Checker: 'if' condition not Boolean.
+8. Plc Checker: no Match results.
+9. Plc Checker: 'match' result types differ.
+10. Plc Checker: 'match' condition types differ matching expressions's type.
+11. teval Call: not a function.
+12. Plc Checker: List index out of range.
+13. Plc Checker: Selection with operator # applied to non-list.
+14. Plc Interp: 'hd' empty sequence argument.
+15. Plc Interp: 'tl' empty sequence argument.
+16. Plc Interp: value not found in match.
+1. EnvironError: Couldn't find value or type in the environment
+2. TypeError: Input and function domain type differ
+3. TypeError: Comparison is using different types
+4. TypeError: Comparison is using different types
+5. TypeError: Return type is not the same as the codomain of the function
+6. TypeError: Return type from then and else branches are differ
+7. TypeError: Condition not boolean
+8. TypeError: No expressions to match with
+9. TypeError: In the list of expressions to match , there are different types of return
+10. TypeError: In the list of expressions to match , there are different types of conditions
+11. TypeError: Trying to call a non function type
+12. TypeError: Trying to access element out of range 
+13. TypeError: Trying to access element of expression that is not a list
+14. EvalError: Trying to access the head of an empty list
+15. EvalError: Trying to access the tail of an empty list
+16. EvalError: Couldn't match the provided value

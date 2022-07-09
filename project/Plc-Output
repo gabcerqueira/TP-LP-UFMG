@@ -1,0 +1,69 @@
+1. 7 : Int
+2. 120 : Int
+3. <fun> : Int -> Int
+4. [2, 8, 6, 720, ] : [Int]
+5. [2, 8, 6, 720, ] : [Int]
+6. [3, 2, 1, ] : [Int]
+7. [3, 2, 1, ] : [Int]
+8. [1, 2, 3, ] : [Int]
+9. ([20, 40, 60, ], [22, 42, 62, ], ) : ([Int], [Int], )
+10. 1 : Int
+11. true : Bool
+12. <fun> : (Int -> Int) -> Int
+13. <fun> : (Int -> Int) -> Int
+14. [1, 2, ] : [Int]
+15. (1, false, ) : (Int, Bool, )
+16. 8 : Int
+17. (5, ~3, ) : (Int, Int, )
+18. (5, ~3, (5, 5, ), ) : (Int, Int, (Int, Int, ), )
+19. 7 : Int
+20. 4 : Int
+21. false : Bool
+22. () : Nil
+23. 21 : Int
+24. 9 : Int
+25. (4, 7, ) : (Int, Int, )
+26. 30 : Int
+27. 9 : Int
+28. 10 : Int
+29. 1 : Int
+30. 12 : Int
+31. 33 : Int
+32. 121393 : Int
+33. 10 : Int
+34. true : Bool
+35. 6 : Int
+1. Int : 7
+2. Int : 120
+3. Int -> Int : <fun>
+4. EvalError: This is impossible
+5. EvalError: This is impossible
+6. [Int] : [3, 2, 1, ]
+7. [Int] : [3, 2, 1, ]
+8. [Int] : [1, 2, 3, ]
+9. EvalError: This is impossible
+10. Int : 1
+11. Bool : true
+12. (Int -> Int) -> Int : <fun>
+13. (Int -> Int) -> Int : <fun>
+14. [Int] : [1, 2, ]
+15. (Int, Bool, ) : (1, false, )
+16. Int : 8
+17. (Int, Int, ) : (5, ~3, )
+18. (Int, Int, (Int, Int, ), ) : (5, ~3, (5, 5, ), )
+19. Int : 7
+20. Int : 4
+21. Bool : false
+22. EnvironError: Couldn't find value or type in the environment
+23. Int : 15
+24. Int : 9
+25. (Int, Int, ) : (4, 7, )
+26. Int : 9
+27. Int : 10
+28. Int : 1
+29. Int : 12
+30. Int : 22
+31. Int : 121393
+32. Int : 10
+33. Bool : true
+34. Int : 6
