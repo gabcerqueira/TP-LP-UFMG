@@ -1,232 +1,171 @@
 (* PlcInterp *)
 
+(* 
+use "Environ.sml";
+use "Absyn.sml"; *)
+
 exception Impossible
 exception HDEmptySeq
 exception TLEmptySeq
 exception ValueNotFoundInMatch
 exception NotAFunc
 
-fun eval (e:expr) (p: plcVal env) =
-    case e of
-        Var s               => lookup p s
-    |   ConI x              => IntV x
-    |   ConB x              => BoolV x
-    |   List l              => 
-        if length l > 0
-        then ListV (map (fn x => (eval x p)) l)
-        else ListV []
-    |   ESeq (SeqT t)       => SeqV []
-    |   Let (s, e1, e2)     => 
-        let
-            val v1      = eval e1 p
-            val newP    = p @ [(s, v1)]
-        in
-            eval e2 newP
-        end
-    |   Anon (t, x, e)      => Clos ("", x, e, p)
-    |   Call (e1, e2)       =>
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
-        in
-            case v1 of
-                Clos (f, s, expr, oldP) => eval expr (oldP @ [(f, v1)] @ [(s, v2)])
-            |   _                       => raise NotAFunc
-        end
-    |   If (cond, et, ef)   => 
-        let
-            val vcond = eval cond p
-        in
-            if (vcond = (BoolV true)) then eval et p else eval ef p
-        end
-    |   Match(e1, l)        =>
-        let
-            val v1 = eval e1 p
-        in
-            if length l > 0
-            then (
-                let
-                    val m = hd l
-                in
-                    case m of 
-                        (SOME e1, r1)   => if (v1 = (eval e1 p)) then eval r1 p else eval (Match(e1, tl l)) p
-                    |   (NONE, r1)      => eval r1 p
-                end
-            )
-            else raise ValueNotFoundInMatch
+fun deconstructIntV(v: plcVal) : int =
+    case v of 
+        IntV x => x
+        | _ => raise Impossible
 
-        end
-    |   Prim1 ("!", e1)     => 
-        let
-            val v1 = eval e1 p
+fun deconstructBoolV(v: plcVal) : bool =
+    case v of 
+        BoolV x => x
+        | _ => raise Impossible
+
+fun deconstructListTypes(v: plcVal) : plcVal list =
+    case v of 
+        ListV x => x
+        | SeqV x => x
+        | _ => raise Impossible
+
+fun deconstructVar(v: expr) : string =
+    case v of 
+        Var x => x
+        | _ => raise Impossible
+
+  
+fun eval(e: expr) (ro: plcVal env) : plcVal =
+    case e of
+        ConI e1 => IntV e1
+        | ConB e1 => BoolV e1 
+        | ESeq _ => SeqV []
+        | Var x => lookup ro x
+        | List [] => ListV []
+        | List(x::xs: expr list) => let
+          val e1 = eval x ro;
+          val e2 = deconstructListTypes(eval(List xs) ro);
         in
-            case v1 of
-                BoolV b => BoolV (not b)
-            |   _       => raise Impossible
+          ListV (e1::e2)
         end
-    |   Prim1 ("-", e1)     => 
-        let
-            val v1 = eval e1 p
+        | Prim2("&&", e1, e2) => let
+          val e1b = deconstructBoolV(eval e1 ro);
+          val e2b = deconstructBoolV(eval e2 ro)
         in
-            case v1 of
-                IntV n  => IntV (~ n)
-            |   _       => raise Impossible
-        end
-    |   Prim1 ("hd", e1)    => 
-        let
-            val v1 = eval e1 p
+          BoolV(e1b andalso e2b)
+        end 
+        | Prim2("::", e1, ESeq _) => SeqV((eval e1 ro)::[])
+        | Prim2("::", e1, e2) => let
+          val ve2 = deconstructListTypes(eval e2 ro);
+          val ve1 = eval e1 ro;
         in
-            case v1 of
-                SeqV l  => if length l > 0 then hd l else raise HDEmptySeq
-            |   _       => raise Impossible
+          SeqV(ve1::ve2)
         end
-    |   Prim1 ("ise", e1)        => 
-        let
-            val v1 = eval e1 p
+        | Prim2(";", e1, e2) => let
+          val e1 = eval e1 ro
         in
-            case v1 of
-                SeqV [] => BoolV true
-            |   SeqV l  => BoolV false
-            |   _       => raise Impossible
+          eval e2 ro
         end
-    |   Prim1 ("tl", e1)    => 
-        let
-            val v1 = eval e1 p
+        | Prim2("+", ConI e1, ConI e2) => IntV(e1 + e2)
+        | Prim2("-", ConI e1, ConI e2) => IntV(e1 - e2)
+        | Prim2("*", ConI e1, ConI e2) => IntV(e1 * e2)
+        | Prim2("/", ConI e1, ConI e2) => IntV(e1 div e2)
+        | Prim2("<=", ConI e1, ConI e2) => BoolV(e1 <= e2)
+        | Prim2("<", ConI e1, ConI e2) => BoolV(e1 < e2)
+        | Prim2("=", e1, e2) => BoolV(e1 = e2)
+        | Prim2("!=", e1, e2) => BoolV(not (e1 = e2))
+        | Prim2(operation, e1, e2) => let
+          val ve1 = deconstructIntV(eval e1 ro);
+          val ve2 = deconstructIntV(eval e2 ro);
         in
-            case v1 of
-                SeqV l  => if length l > 0 then SeqV (tl l) else raise TLEmptySeq
-            |   _       => raise Impossible
+          eval (Prim2(operation, ConI ve1, ConI ve2)) ro
         end
-    |   Prim1 ("print", e1)        => 
-        let
-            val v1 = eval e1 p
-            val s = (val2string v1) ^ "\n"
+        | Item(e1, List e2) => eval (List.nth(e2, e1-1)) ro
+        | Item(e1, e2) => let
+          val ve2 = eval e2 ro;
+          val newList = deconstructListTypes ve2
         in
-            print s;
-            ListV []
+          List.nth(newList, e1-1)
         end
-    |   Prim2 ("&&", e1, e2)    => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | If(e1, e2, e3) => if eval e1 ro = BoolV true then eval e2 ro else eval e3 ro
+        | Prim1("!", ConB e1) => BoolV(not e1)
+        | Prim1("!", e1) => BoolV(not (deconstructBoolV(eval e1 ro))) 
+        | Prim1("-", ConI e1) => IntV(~e1)
+        | Prim1("-", e1) => IntV(~(deconstructIntV(eval e1 ro)))
+        | Prim1("hd", e1) => let
+          val ve1 = eval e1 ro
         in
-            case (v1, v2) of
-                (BoolV a, BoolV b)  => BoolV (a andalso b)
-            |   _                   => raise Impossible
+          case ve1 of
+            SeqV (x::ts: plcVal list) => x
+            | SeqV [] => raise HDEmptySeq
+            | _ => raise Impossible
         end
-    |   Prim2 ("::", e1, e2)    => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Prim1("tl", e1) => let
+          val ve1 = eval e1 ro
         in
-            case v1 of
-                SeqV a  =>(
-                    case v2 of 
-                        SeqV b  => SeqV (a @ b)
-                    |   _       => SeqV (v2 :: a)
-                )
-            |   _       =>(
-                case v2 of
-                    SeqV([])    =>  SeqV (v1 :: [])
-                |   SeqV b      =>  SeqV (v1 :: b)
-            )
+          case ve1 of
+            SeqV (x::ts: plcVal list) => SeqV(ts)
+            | SeqV [] => raise TLEmptySeq
+            | _ => raise Impossible
         end
-    |   Prim2 (";", e1, e2)     => eval e2 p
-    |   Prim2 ("=", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Prim1("ise", e1) => let
+          val ve1 = eval e1 ro
         in
-            if(v1 = v2)
-            then BoolV true
-            else BoolV false
+          case ve1 of
+            SeqV [] => BoolV true
+            | _ => BoolV false
         end
-    |   Prim2 ("!=", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Prim1("print", e1) => let
+          val ve1 = eval e1 ro;
+          val str = val2string(ve1);
         in
-            if(v1 = v2)
-            then BoolV false
-            else BoolV true
+          print (str ^ "\n");
+          ListV []
         end
-    |   Prim2 ("+", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Match(e1, hd::options: (expr option * expr) list) => let
+          val ve1 = eval e1 ro;
+          val (m, a) = hd
         in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => IntV (a+b)
-            |   _                   => raise Impossible
+          case m of
+            SOME e2 => if ve1 = eval e2 ro then 
+                        eval a ro 
+                      else if options = [] then 
+                        raise ValueNotFoundInMatch 
+                      else 
+                        eval(Match(e1, options)) ro
+            | NONE => eval a ro
         end
-    |   Prim2 ("-", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Anon(e1, e2, e3) => Clos("", e2, e3, ro)
+        | Let(e1, e2, e3) => let
+          val ve2 = eval e2 ro
         in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => IntV (a-b)
-            |   _                   => raise Impossible
+          eval e3 ((e1, ve2)::ro)
         end
-    |   Prim2 ("*", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Letrec(nf, _, nv, _, e3, e4) => let
+          val clo = Clos(nf, nv, e3, ro);
+          val ro' = (nf, clo)::ro;
         in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => IntV (a*b)
-            |   _                   => raise Impossible
+          eval e4 ro'
         end
-    |   Prim2 ("/", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+        | Call(Var vf, e) => let 
+          val fv = lookup ro vf
         in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => IntV (a div b)
-            |   _                   => raise Impossible
-        end
-    |   Prim2 ("<", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
+          case fv of
+            Clos(vf, x, e1, fSt) => let
+              val ve1 = eval e ro;
+              val ro' = (x, ve1) :: (vf, fv) :: fSt
+            in
+              eval e1 ro'
+            end
+            | _ => raise NotAFunc
+        end 
+        | Call(Call f, e) => let 
+          val vf = eval (Call f) ro;
         in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => BoolV (a < b)
-            |   _                   => raise Impossible
-        end
-    |   Prim2 ("<=", e1, e2)     => 
-        let
-            val v1 = eval e1 p
-            val v2 = eval e2 p
-        in
-            case (v1,v2) of 
-                (IntV a, IntV b)    => BoolV (a <= b)
-            |   _                   => raise Impossible
-        end
-    |   Item(n, e1)             =>
-        let
-            val v1 = eval e1 p
-        in
-            case v1 of
-                ListV l => 
-                let
-                    val maxIndex = length l
-                    val index = n
-                in
-                    if ( n = 0 orelse (n > maxIndex))
-                    then raise Impossible
-                    else List.nth(l, index - 1)
-                end
-            |   _       => raise Impossible
-        end
-    |   Letrec (fName, _, varName, _, e1, e2) => 
-        case e2 of
-            Call(_, varExpr)    => (
-                let
-                    val pWithFunValue   = p @ [(fName, (Clos (fName , varName, e1, p)))]
-                in
-                    eval e2 pWithFunValue
-                end
-            )
-        |   _                   => raise Impossible
+          case vf of
+            Clos(f, x, e1, fSt) => let
+              val ve1 = eval e ro;
+              val ro' = (x, ve1) :: (f, vf) :: fSt
+            in
+              eval e1 ro'
+            end
+            | _ => raise NotAFunc
+        end 
+        | _ => raise Impossible
