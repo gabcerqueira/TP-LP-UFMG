@@ -3,7 +3,7 @@
 
 
 fun run (e:expr) = 
-    type2string (teval e []) ^ " : " ^ val2string(eval e [])
+    val2string(eval e []) ^ " : " ^ type2string (teval e [])
 
     handle SymbolNotFound  => "EnvironError: Couldn't find value or type in the environment"
     

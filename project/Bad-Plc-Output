@@ -14,6 +14,7 @@
 14. Plc Interp: 'hd' empty sequence argument.
 15. Plc Interp: 'tl' empty sequence argument.
 16. Plc Interp: value not found in match.
+
 1. EnvironError: Couldn't find value or type in the environment
 2. TypeError: Input and function domain type differ
 3. TypeError: Comparison is using different types
