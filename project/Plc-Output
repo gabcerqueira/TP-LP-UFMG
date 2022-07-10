@@ -46,7 +46,7 @@
 8. [1, 2, 3, ] : [Int]
 9. ([20, 40, 60, ], [22, 42, 62, ], ) : ([Int], [Int], )
 10. 1 : Int
-11. false : Bool
+11. true : Bool
 12. <fun> : (Int -> Int) -> Int
 13. <fun> : (Int -> Int) -> Int
 14. [1, 2, ] : [Int]

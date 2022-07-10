@@ -3,7 +3,12 @@
 
 
 fun run (e:expr) = 
-    val2string(eval e []) ^ " : " ^ type2string (teval e [])
+    let
+    val exptype = teval e [];
+    val expval = eval e []
+  in
+    (val2string expval) ^ " : " ^ (type2string exptype)
+  end
 
     handle SymbolNotFound  => "EnvironError: Couldn't find value or type in the environment"
     
