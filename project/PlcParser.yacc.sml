@@ -318,7 +318,7 @@ val gotoT =
 \\000\000\
 \\000\000\
 \\000\000\
-\\002\000\114\000\005\000\042\000\006\000\073\000\000\000\
+\\002\000\075\000\004\000\114\000\005\000\042\000\006\000\073\000\000\000\
 \\000\000\
 \\000\000\
 \\000\000\
@@ -565,14 +565,14 @@ end)
  in ( LrTable.NT 3, ( result, TypedVar1left, TypedVar1right), rest671)
 
 end
-|  ( 6, ( ( _, ( MlyValue.TypedVar TypedVar2, _, TypedVar2right)) :: _
- :: ( _, ( MlyValue.TypedVar TypedVar1, TypedVar1left, _)) :: rest671)
-) => let val  result = MlyValue.Params (fn _ => let val  TypedVar1 = 
-TypedVar1 ()
- val  TypedVar2 = TypedVar2 ()
- in (TypedVar1 :: TypedVar2 :: [])
+|  ( 6, ( ( _, ( MlyValue.Params Params1, _, Params1right)) :: _ :: (
+ _, ( MlyValue.TypedVar TypedVar1, TypedVar1left, _)) :: rest671)) =>
+ let val  result = MlyValue.Params (fn _ => let val  (TypedVar as 
+TypedVar1) = TypedVar1 ()
+ val  (Params as Params1) = Params1 ()
+ in (TypedVar::Params)
 end)
- in ( LrTable.NT 3, ( result, TypedVar1left, TypedVar2right), rest671)
+ in ( LrTable.NT 3, ( result, TypedVar1left, Params1right), rest671)
 
 end
 |  ( 7, ( ( _, ( _, _, RPAR1right)) :: ( _, ( _, LPAR1left, _)) :: 

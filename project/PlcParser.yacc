@@ -55,7 +55,7 @@ Const : CINT (ConI(CINT))
 TypedVar : Type NAME ((Type,NAME))
 
 Params : TypedVar (TypedVar::[])
-| TypedVar COMMA TypedVar (TypedVar1 :: TypedVar2 :: [])
+ | TypedVar COMMA Params (TypedVar::Params)
 
 Args : LPAR RPAR ([])
 | LPAR Params RPAR (Params)
