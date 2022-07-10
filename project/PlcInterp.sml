@@ -6,20 +6,20 @@ exception TLEmptySeq
 exception ValueNotFoundInMatch
 exception NotAFunc
 
-fun eval (e:expr) (st:plcVal env) : plcVal =
+fun eval (e:expr) (p:plcVal env) : plcVal =
   case e of
       ConI(i) => IntV i
     | ConB(b) => BoolV b
     | ESeq(t) => SeqV []
-    | Var(name) => lookup st name
-    | Let(name, value, exp) => eval exp ((name, (eval value st))::st)
-    | Letrec(funcname, vartype, varname, functype, funcbody, prog) =>
-      eval prog ((funcname, Clos (funcname, varname, funcbody, st))::st)
-    | Prim1 (oper, exp) =>
+    | Var(name) => lookup p name
+    | Let(name, value, exp) => eval exp ((name, (eval value p))::p)
+    | Letrec(funName, varType, varName, funType, funBody, prog) =>
+      eval prog ((funName, Clos (funName, varName, funBody, p))::p)
+    | Prim1 (operation, exp) =>
       let
-        val value = eval exp st
+        val value = eval exp p
       in
-        case oper of
+        case operation of
           ("!") =>
             (case value of
               (BoolV v) => BoolV (not v)
@@ -46,12 +46,12 @@ fun eval (e:expr) (st:plcVal env) : plcVal =
         | ("print") => (print ((val2string value) ^ "\n"); ListV [])
         | _ => raise Impossible
       end
-    | Prim2(oper, exp1, exp2) =>
+    | Prim2(operation, exp1, exp2) =>
       let
-        val val1 = eval exp1 st;
-        val val2 = eval exp2 st
+        val val1 = eval exp1 p;
+        val val2 = eval exp2 p
       in
-        case oper of
+        case operation of
           ("&&") =>
             (case (val1, val2) of
               (BoolV v1, BoolV v2) => BoolV (v1 andalso v2)
@@ -102,60 +102,60 @@ fun eval (e:expr) (st:plcVal env) : plcVal =
       end
     | If(cond, thenexp, elsexp) =>
       let
-        val test = eval cond st
+        val test = eval cond p
       in
         case test of
-          (BoolV result) => if result then (eval thenexp st) else (eval elsexp st)
+          (BoolV result) => if result then (eval thenexp p) else (eval elsexp p)
         | _ => raise Impossible
       end
     | Match(exp, options) =>
       let
-        val what = eval exp st;
+        val what = eval exp p;
         fun tryMatch (next::rest) : plcVal =
             (case next of
               (SOME(condexp), option) =>
                 let
-                  val cond = eval condexp st
+                  val cond = eval condexp p
                 in
-                  if what = cond then eval option st else tryMatch rest
+                  if what = cond then eval option p else tryMatch rest
                 end
-            | (NONE, option) => eval option st)
+            | (NONE, option) => eval option p)
           | tryMatch [] = raise ValueNotFoundInMatch;
       in
         tryMatch options
       end
-    | Call(funcname, valexp) =>
+    | Call(funName, valexp) =>
       let
-        val funcclosure = eval funcname st;
+        val funClos = eval funName p;
       in
-        case funcclosure of 
-          Clos(funcname, varname, funcbody, funcst) =>
+        case funClos of 
+          Clos(funName, varName, funBody, funP) =>
             let
-              val value = eval valexp st;
-              val recst = (varname, value)::(funcname, funcclosure)::funcst
+              val value = eval valexp p;
+              val recst = (varName, value)::(funName, funClos)::funP
             in
-              eval funcbody recst
+              eval funBody recst
             end
         | _ => raise NotAFunc
       end
     | List(items) =>
       let
-        fun evalList (items:expr list) (st:plcVal env) : plcVal list =
+        fun evalList (items:expr list) (p:plcVal env) : plcVal list =
           case items of
             [] => []
-          | xs::t => (eval xs st)::(evalList t st)
+          | xs::t => (eval xs p)::(evalList t p)
       in
-        ListV (evalList items st)
+        ListV (evalList items p)
       end
-    | Item(index, itemexpr) =>
+    | Item(index, itemExp) =>
       let
-        val itemeval = eval itemexpr st;
+        val itemEval = eval itemExp p;
         fun findIndex (curr: int) (xs::t : plcVal list) : plcVal =
             if (curr = index) then xs else if (curr > index) then raise Impossible else findIndex (curr + 1) t
           | findIndex _ [] = raise Impossible
       in
-        case itemeval of
+        case itemEval of
           ListV(items) => findIndex 1 items
         | _ => raise Impossible
       end
-    | Anon(vartype, varname, funcbody) => Clos("", varname, funcbody, st);
+    | Anon(varType, varName, funBody) => Clos("", varName, funBody, p);
