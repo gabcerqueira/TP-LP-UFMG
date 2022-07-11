@@ -35,11 +35,12 @@
 35. 6 : Int
 
 
+
 1. 7 : Int
 2. 120 : Int
 3. <fun> : Int -> Int
-4. EnvironError: Couldn't find value or type in the environment
-5. EnvironError: Couldn't find value or type in the environment
+4. [2, 8, 6, 720, ] : [Int]
+5. [2, 8, 6, 720, ] : [Int]
 6. [3, 2, 1, ] : [Int]
 7. [3, 2, 1, ] : [Int]
 8. [1, 2, 3, ] : [Int]
@@ -56,8 +57,8 @@
 19. 7 : Int
 20. 4 : Int
 21. false : Bool
-22. EnvironError: Couldn't find value or type in the environment
-23. EnvironError: Couldn't find value or type in the environment
+22. () : Nil
+23. 21 : Int
 24. 9 : Int
 25. (4, 7, ) : (Int, Int, )
 26. 30 : Int
@@ -70,4 +71,3 @@
 33. 10 : Int
 34. true : Bool
 35. 6 : Int
-

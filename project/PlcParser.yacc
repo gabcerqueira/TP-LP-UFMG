@@ -4,40 +4,43 @@
 
 %pos int
 
-%term VAR | NAME of string | EQ | FUN | REC | COLON
-| IF | THEN | ELSE | MATCH | WITH | INV | HD | TL | ISE | NEG
-| PRINT | CONJ | PLUS | MINUS | TIMES | DIV | DIFF | LT | LTE
-| CONCAT | SEMIC | LCOLCH | RCOLCH | LPAR | RPAR | LCHAV | RCHAV
-| FN | ARROW | END | CBOOL of bool | CINT of int | COMMA | BAR
-| AROW | UNDERL | NIL | BOOL | INT | EOF
+%term SEMIC 
+    | ARROW | FUNARROW
+    | VAR | ANONFUN | FUN | REC | END
+    | IF | THEN | ELSE
+    | MATCH | WITH | PIPE | UNDERSCORE
+    | NOT | HD | TL | ISE | PRINT
+    | AND | PLUS | MINUS | MULTI | DIV | EQ | NOTEQ | LESS | LESSEQ | DOUBLEPOINT
+    | LPAR | RPAR | LCOL | RCOL | LBRACKET | RBRACKET
+    | TRUE | FALSE
+    | COMMA| DPOINT
+    | TNIL | TBOOL | TINT
+    | NAME of string | CINT of int
+    | EOF
 
-%nonterm Const of expr
-| TypedVar of plcType * string
-| Args of (plcType * string) list
-| Params of (plcType * string) list
-| AtomicType of plcType
-| Type of plcType
-| Types of plcType list
-| Comps of expr list
-| AtomicExpr of expr
-| AppExpr of expr
-| CondExpr of expr option
-| MatchExpr of (expr option * expr) list
-| Expr of expr
-| Decl of expr
-| Prog of expr
+%nonterm Prog of expr
+    | Decl of expr
+    | Expr of expr
+    | AtomExpr of expr
+    | AppExpr of expr
+    | Const of expr
+    | Comps of expr list
+    | MatchExpr of (expr option * expr) list
+    | CondExpr of expr option
+    | Args of (plcType * string) list
+    | Params of (plcType * string) list
+    | TypedVar of plcType * string
+    | Type of plcType
+    | AtomType of plcType
+    | Types of plcType list
 
-%right SEMIC AROW 
+%right SEMIC ARROW 
 %nonassoc IF
-%left ELSE 
-%left CONJ 
-%left EQ DIFF 
-%left LT LTE 
-%right CONCAT
-%left PLUS MINUS 
-%left TIMES DIV 
-%nonassoc NEG HD TL ISE PRINT FUN
-%left LCOLCH
+%left ELSE AND EQ NOTEQ LESS LESSEQ
+%right DOUBLEPOINT 
+%left PLUS MINUS MULTI DIV
+%nonassoc NOT HD TL ISE PRINT 
+%left LCOL
 
 %eop EOF
 
@@ -47,77 +50,78 @@
 
 %%
 
-Const : CINT (ConI(CINT))
-| CBOOL (ConB(CBOOL))
-| LPAR RPAR (List [])
-| LPAR Type LCOLCH RCOLCH RPAR (ESeq (Type))
-
-TypedVar : Type NAME ((Type,NAME))
-
-Params : TypedVar (TypedVar::[])
- | TypedVar COMMA Params (TypedVar::Params)
-
-Args : LPAR RPAR ([])
-| LPAR Params RPAR (Params)
-
-AtomicType : NIL (ListT [])
-| INT (IntT)
-| BOOL (BoolT)
-| LPAR Type RPAR (Type)
-
-Type : AtomicType (AtomicType)
-| LPAR Types RPAR (ListT Types)
-| LCOLCH Type RCOLCH (SeqT Type)
-| Type AROW Type (FunT (Type1, Type2))
-
-Types : Type COMMA Type (Type1::[Type2])
-| Type COMMA Types (Type::Types)
-
-Comps : Expr COMMA Expr (Expr1::[Expr2])
-| Expr COMMA Comps (Expr::Comps)
-
-AtomicExpr : Const (Const)
-| NAME (Var(NAME))
-| LCHAV Prog RCHAV (Prog)
-| LPAR Expr RPAR (Expr)
-| LPAR Comps RPAR (List Comps)
-| FN Args ARROW Expr END (makeAnon(Args, Expr))
-
-AppExpr : AtomicExpr AtomicExpr (Call (AtomicExpr1, AtomicExpr2))
-| AppExpr AtomicExpr (Call (AppExpr, AtomicExpr))
-
-CondExpr : UNDERL (NONE)
-| Expr (SOME Expr)
-
-MatchExpr : END ([])
-| BAR CondExpr AROW Expr MatchExpr ((CondExpr, Expr) :: MatchExpr)
-
-Expr : AtomicExpr (AtomicExpr)
-| AppExpr (AppExpr)
-| IF Expr THEN Expr ELSE Expr (If (Expr1, Expr2, Expr3))
-| MATCH Expr WITH MatchExpr (Match (Expr, MatchExpr))
-| NEG Expr (Prim1("!", Expr))
-| MINUS Expr (Prim1("-", Expr))
-| HD Expr (Prim1("hd", Expr))
-| TL Expr (Prim1("tl", Expr))
-| ISE Expr (Prim1("ise", Expr))
-| PRINT Expr (Prim1("print", Expr))
-| Expr CONJ Expr (Prim2("&&", Expr1, Expr2))
-| Expr PLUS Expr (Prim2("+", Expr1, Expr2))
-| Expr MINUS Expr (Prim2("-", Expr1, Expr2))
-| Expr TIMES Expr (Prim2("*", Expr1, Expr2))
-| Expr DIV Expr (Prim2("/", Expr1, Expr2))
-| Expr EQ Expr (Prim2("=", Expr1, Expr2))
-| Expr DIFF Expr (Prim2("!=", Expr1, Expr2))
-| Expr LT Expr (Prim2("<", Expr1, Expr2))
-| Expr LTE Expr (Prim2("<=", Expr1, Expr2))
-| Expr CONCAT Expr (Prim2("::", Expr1, Expr2))
-| Expr SEMIC Expr (Prim2(";", Expr1, Expr2))
-| Expr LCOLCH CINT RCOLCH (Item (CINT, Expr))
-
-Prog: Expr (Expr)
-| Decl (Decl)
+Prog : Expr (Expr)
+    | Decl (Decl)
 
 Decl : VAR NAME EQ Expr SEMIC Prog (Let(NAME, Expr, Prog))
-| FUN NAME Args EQ Expr SEMIC Prog (Let(NAME, makeAnon(Args, Expr), Prog))
-| FUN REC NAME Args COLON Type EQ Expr SEMIC Prog (makeFun(NAME, Args, Type, Expr, Prog))
+    | FUN NAME Args EQ Expr SEMIC Prog (Let(NAME, makeAnon(Args, Expr), Prog))
+    | FUN REC NAME Args DPOINT Type EQ Expr SEMIC Prog (makeFun(NAME, Args, Type, Expr, Prog))
+
+Expr : AtomExpr (AtomExpr)
+    | AppExpr (AppExpr)
+    | IF Expr THEN Expr ELSE Expr (If(Expr1, Expr2, Expr3))
+    | MATCH Expr WITH MatchExpr (Match(Expr, MatchExpr))
+    | NOT Expr (Prim1("!", Expr1))
+    | MINUS Expr (Prim1("-", Expr1))
+    | HD Expr (Prim1("hd", Expr1))
+    | TL Expr (Prim1("tl", Expr1))
+    | ISE Expr (Prim1("ise", Expr1))
+    | PRINT Expr (Prim1("print", Expr1))
+    | Expr AND Expr (Prim2("&&", Expr1, Expr2))
+    | Expr PLUS Expr (Prim2("+", Expr1, Expr2))
+    | Expr MINUS Expr (Prim2("-", Expr1, Expr2))
+    | Expr MULTI Expr (Prim2("*", Expr1, Expr2))
+    | Expr DIV Expr (Prim2("/", Expr1, Expr2))
+    | Expr EQ Expr (Prim2("=", Expr1, Expr2))
+    | Expr NOTEQ Expr (Prim2("!=", Expr1, Expr2))
+    | Expr LESS Expr (Prim2("<", Expr1, Expr2))
+    | Expr LESSEQ Expr (Prim2("<=", Expr1, Expr2))
+    | Expr DOUBLEPOINT Expr (Prim2("::", Expr1, Expr2))
+    | Expr SEMIC Expr (Prim2(";", Expr1, Expr2))
+    | Expr LCOL CINT RCOL (Item(CINT, Expr))
+
+AtomExpr : Const (Const)
+    | NAME (Var NAME)
+    | LBRACKET Prog RBRACKET (Prog)
+    | LPAR Expr RPAR (Expr)
+    | LPAR Comps RPAR (List(Comps))
+    | ANONFUN Args FUNARROW Expr END (makeAnon(Args, Expr))
+
+AppExpr : AtomExpr AtomExpr (Call(AtomExpr1, AtomExpr2))
+    | AppExpr AtomExpr (Call(AppExpr, AtomExpr))
+
+Const : TRUE (ConB true)
+    | FALSE (ConB false)
+    | CINT (ConI CINT)
+    | LPAR RPAR (List [])
+    | LPAR Type LCOL RCOL RPAR (ESeq(Type))
+
+Comps : Expr COMMA Expr (Expr1::Expr2::[])
+    | Expr COMMA Comps (Expr::Comps)
+
+MatchExpr : END ([])
+    | PIPE CondExpr ARROW Expr MatchExpr ((CondExpr, Expr)::MatchExpr)
+
+CondExpr : Expr (SOME(Expr))
+    | UNDERSCORE (NONE)
+
+Args : LPAR RPAR ([])
+    | LPAR Params RPAR (Params)
+
+Params : TypedVar (TypedVar::[])
+    | TypedVar COMMA Params (TypedVar::Params)
+
+TypedVar : Type NAME (Type, NAME)
+
+Type : AtomType (AtomType)
+    | LPAR Types RPAR (ListT(Types))
+    | LCOL Type RCOL (SeqT(Type))
+    | Type ARROW Type (FunT(Type1, Type2))
+
+AtomType : TNIL (ListT [])
+    | TBOOL (BoolT)
+    | TINT (IntT)
+    | LPAR Type RPAR (Type)
+
+Types : Type COMMA Type (Type1::Type2::[])
+    | Type COMMA Types (Type::Types)
