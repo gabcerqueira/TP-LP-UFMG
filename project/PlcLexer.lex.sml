@@ -24,6 +24,13 @@ fun getLineAsString() =
         Int.toString lineNum
     end
 
+
+fun strToInt s =
+    case Int.fromString s of
+        SOME i => i
+    |   NONE => raise Fail ("Could not convert string '" ^ s ^ "' to integer")
+
+
 fun keyWord (s, lpos, rpos) =
     case s of 
         "var" => VAR (lpos, rpos)
@@ -47,11 +54,6 @@ fun keyWord (s, lpos, rpos) =
         | "with" => WITH (lpos, rpos)
         | "_" => UNDERSCORE (lpos, rpos)
         | _   => NAME (s, lpos, rpos)
-
-fun strToInt s =
-    case Int.fromString s of
-        SOME i => i
-    |   NONE => raise Fail ("Could not convert string '" ^ s ^ "' to integer")
 
 (* Define what to do when the end of the file is reached. *)
 fun eof () = Tokens.EOF(0,0)

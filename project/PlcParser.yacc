@@ -8,23 +8,21 @@
     | ARROW | FUNARROW
     | VAR | ANONFUN | FUN | REC | END
     | IF | THEN | ELSE
-    | MATCH | WITH | PIPE | UNDERSCORE
-    | NOT | HD | TL | ISE | PRINT
-    | AND | PLUS | MINUS | MULTI | DIV | EQ | NOTEQ | LESS | LESSEQ | DOUBLEPOINT
-    | LPAR | RPAR | LCOL | RCOL | LBRACKET | RBRACKET
-    | TRUE | FALSE
-    | COMMA| DPOINT
+    | AND | PLUS | MINUS | MULTI | DIV 
+    | EQ | NOTEQ | LESS | LESSEQ | DOUBLEPOINT
     | TNIL | TBOOL | TINT
     | NAME of string | CINT of int
     | EOF
+    | MATCH | WITH | PIPE | UNDERSCORE
+    | LPAR | RPAR | LCOL | RCOL | LBRACKET | RBRACKET
+    | TRUE | FALSE
+    | COMMA| DPOINT
+    | NOT | HD | TL | ISE | PRINT
+    
 
 %nonterm Prog of expr
     | Decl of expr
     | Expr of expr
-    | AtomExpr of expr
-    | AppExpr of expr
-    | Const of expr
-    | Comps of expr list
     | MatchExpr of (expr option * expr) list
     | CondExpr of expr option
     | Args of (plcType * string) list
@@ -33,10 +31,16 @@
     | Type of plcType
     | AtomType of plcType
     | Types of plcType list
+    | AtomExpr of expr
+    | AppExpr of expr
+    | Const of expr
+    | Comps of expr list
+    
 
 %right SEMIC ARROW 
 %nonassoc IF
-%left ELSE AND EQ NOTEQ LESS LESSEQ
+%left ELSE AND EQ
+%left NOTEQ LESS LESSEQ
 %right DOUBLEPOINT 
 %left PLUS MINUS MULTI DIV
 %nonassoc NOT HD TL ISE PRINT 
@@ -50,35 +54,7 @@
 
 %%
 
-Prog : Expr (Expr)
-    | Decl (Decl)
 
-Decl : VAR NAME EQ Expr SEMIC Prog (Let(NAME, Expr, Prog))
-    | FUN NAME Args EQ Expr SEMIC Prog (Let(NAME, makeAnon(Args, Expr), Prog))
-    | FUN REC NAME Args DPOINT Type EQ Expr SEMIC Prog (makeFun(NAME, Args, Type, Expr, Prog))
-
-Expr : AtomExpr (AtomExpr)
-    | AppExpr (AppExpr)
-    | IF Expr THEN Expr ELSE Expr (If(Expr1, Expr2, Expr3))
-    | MATCH Expr WITH MatchExpr (Match(Expr, MatchExpr))
-    | NOT Expr (Prim1("!", Expr1))
-    | MINUS Expr (Prim1("-", Expr1))
-    | HD Expr (Prim1("hd", Expr1))
-    | TL Expr (Prim1("tl", Expr1))
-    | ISE Expr (Prim1("ise", Expr1))
-    | PRINT Expr (Prim1("print", Expr1))
-    | Expr AND Expr (Prim2("&&", Expr1, Expr2))
-    | Expr PLUS Expr (Prim2("+", Expr1, Expr2))
-    | Expr MINUS Expr (Prim2("-", Expr1, Expr2))
-    | Expr MULTI Expr (Prim2("*", Expr1, Expr2))
-    | Expr DIV Expr (Prim2("/", Expr1, Expr2))
-    | Expr EQ Expr (Prim2("=", Expr1, Expr2))
-    | Expr NOTEQ Expr (Prim2("!=", Expr1, Expr2))
-    | Expr LESS Expr (Prim2("<", Expr1, Expr2))
-    | Expr LESSEQ Expr (Prim2("<=", Expr1, Expr2))
-    | Expr DOUBLEPOINT Expr (Prim2("::", Expr1, Expr2))
-    | Expr SEMIC Expr (Prim2(";", Expr1, Expr2))
-    | Expr LCOL CINT RCOL (Item(CINT, Expr))
 
 AtomExpr : Const (Const)
     | NAME (Var NAME)
@@ -108,6 +84,29 @@ CondExpr : Expr (SOME(Expr))
 Args : LPAR RPAR ([])
     | LPAR Params RPAR (Params)
 
+Expr : AtomExpr (AtomExpr)
+    | AppExpr (AppExpr)
+    | IF Expr THEN Expr ELSE Expr (If(Expr1, Expr2, Expr3))
+    | MATCH Expr WITH MatchExpr (Match(Expr, MatchExpr))
+    | NOT Expr (Prim1("!", Expr1))
+    | MINUS Expr (Prim1("-", Expr1))
+    | HD Expr (Prim1("hd", Expr1))
+    | TL Expr (Prim1("tl", Expr1))
+    | ISE Expr (Prim1("ise", Expr1))
+    | PRINT Expr (Prim1("print", Expr1))
+    | Expr AND Expr (Prim2("&&", Expr1, Expr2))
+    | Expr PLUS Expr (Prim2("+", Expr1, Expr2))
+    | Expr MINUS Expr (Prim2("-", Expr1, Expr2))
+    | Expr MULTI Expr (Prim2("*", Expr1, Expr2))
+    | Expr DIV Expr (Prim2("/", Expr1, Expr2))
+    | Expr EQ Expr (Prim2("=", Expr1, Expr2))
+    | Expr DOUBLEPOINT Expr (Prim2("::", Expr1, Expr2))
+    | Expr SEMIC Expr (Prim2(";", Expr1, Expr2))
+    | Expr LCOL CINT RCOL (Item(CINT, Expr))
+    | Expr NOTEQ Expr (Prim2("!=", Expr1, Expr2))
+    | Expr LESS Expr (Prim2("<", Expr1, Expr2))
+    | Expr LESSEQ Expr (Prim2("<=", Expr1, Expr2))
+
 Params : TypedVar (TypedVar::[])
     | TypedVar COMMA Params (TypedVar::Params)
 
@@ -125,3 +124,11 @@ AtomType : TNIL (ListT [])
 
 Types : Type COMMA Type (Type1::Type2::[])
     | Type COMMA Types (Type::Types)
+
+
+Prog : Expr (Expr)
+    | Decl (Decl)    
+
+Decl : VAR NAME EQ Expr SEMIC Prog (Let(NAME, Expr, Prog))
+    | FUN NAME Args EQ Expr SEMIC Prog (Let(NAME, makeAnon(Args, Expr), Prog))
+    | FUN REC NAME Args DPOINT Type EQ Expr SEMIC Prog (makeFun(NAME, Args, Type, Expr, Prog))
