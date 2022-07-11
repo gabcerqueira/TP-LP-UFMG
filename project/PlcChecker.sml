@@ -26,8 +26,6 @@ fun isEqualityType (p: plcType) =
     |   ListT l         => if length l > 0 then (isEqualityType (hd l)) andalso (isEqualityType (ListT (tl l))) else true
     |   _               => false
 
-
-
 fun teval (e:expr) (p: plcType env) =
             case e of
 (*1*)           Var s               => lookup p s
